@@ -184,7 +184,7 @@ def build(days_per_year: int | None = None, limit_students: int | None = None) -
         stu_rows = [
             {"id": s["id"], "adm": f"ADM{s['id']:05d}", "n": f"Student {s['id']:04d}",
              "uin": s["uin"], "aad": s["aadhaar_masked"], "dob": s["dob"],
-             "g": s["gender"], "act": int(s["active"])} for s in students]
+             "g": s["gender"], "act": s["active"]} for s in students]
         conn.execute(text(
             "INSERT INTO student (id, admission_no, name, uin_id, aadhaar_masked, "
             "date_of_birth, gender, active, guardian_ids, address) "
@@ -195,10 +195,11 @@ def build(days_per_year: int | None = None, limit_students: int | None = None) -
             for s in students]
         conn.execute(text(
             "INSERT INTO guardian (id, name, phone, relation, consent_given, aadhaar_masked) "
-            "VALUES (:id,:n,:p,'father',1,:aad)"), guard_rows)
+            "VALUES (:id,:n,:p,'father',TRUE,:aad)"), guard_rows)
+        # CAST keeps this portable: Postgres won't do text || int, SQLite rejects ::
         conn.execute(text(
-            "UPDATE student SET guardian_ids = (SELECT '['||id||']' FROM guardian g "
-            "WHERE g.id = student.id)"))
+            "UPDATE student SET guardian_ids = (SELECT '['||CAST(g.id AS TEXT)||']' "
+            "FROM guardian g WHERE g.id = student.id)"))
         counts["students"] = len(students)
 
         # ================= Class sections + enrollments + admissions ======
@@ -251,7 +252,7 @@ def build(days_per_year: int | None = None, limit_students: int | None = None) -
                 {"y": yid[lb], "s": s["id"],
                  "st": "withdrawn" if (s["arch"] == "at_risk" and s["id"] % 5 == 0)
                         else "enrolled",
-                 "rte": 1 if s["id"] % 4 == 0 else 0,
+                 "rte": s["id"] % 4 == 0,
                  "d": date(2025, 5, 10 + (s["id"] % 20))})
         counts["enrollments"] = len(enroll_rows)
 
@@ -326,7 +327,7 @@ def build(days_per_year: int | None = None, limit_students: int | None = None) -
                     grade, passed = _grade(100 * total / tm_tot if tm_tot else 0)
                     mark_rows.append({"p": pid, "s": er["s"], "t": theory,
                                       "pr": practical, "tot": total, "g": grade,
-                                      "pf": 1 if passed else 0,
+                                      "pf": passed,
                                       "up": datetime(2026, 6, 30, 0, 0, 0, tzinfo=timezone.utc)})
         conn.execute(text(
             "INSERT INTO mark (exam_paper_id, student_id, theory, practical, total, "
@@ -336,9 +337,12 @@ def build(days_per_year: int | None = None, limit_students: int | None = None) -
 
         # results: roll up per exam per student (SQL aggregate, then insert)
         for (lb, k), eid in exam_ids.items():
+            # CASE form (not SUM(bool), not FILTER) so it runs on both
+            # SQLite and Postgres
             rows = conn.execute(text(
                 "SELECT m.student_id, COALESCE(SUM(m.total),0) AS tot, "
-                "COALESCE(SUM(m.pass_flag),0) AS pc, COUNT(*) AS n FROM mark m "
+                "COALESCE(SUM(CASE WHEN m.pass_flag THEN 1 ELSE 0 END),0) AS pc, "
+                "COUNT(*) AS n FROM mark m "
                 "JOIN exam_paper p ON p.id=m.exam_paper_id WHERE p.exam_id=:e "
                 "GROUP BY m.student_id"), {"e": eid}).all()
             poss = int(conn.execute(text(
@@ -389,7 +393,7 @@ def build(days_per_year: int | None = None, limit_students: int | None = None) -
                 total = principal + gst_total
                 waived = (arch == "at_risk" and ins == 6 and s["id"] % 3 == 0)
                 bill_rows.append({"n": bill_num, "y": yid[lb], "s": er["s"], "i": ins,
-                                   "d": due, "w": 1 if waived else 0,
+                                   "d": due, "w": waived,
                                    "wr": "merit" if waived else None,
                                    "p": principal, "g": gst_total, "t": total})
                 for c, amt in amount_map.items():
@@ -425,11 +429,11 @@ def build(days_per_year: int | None = None, limit_students: int | None = None) -
             "INSERT INTO payment (year_id, student_id, bill_id, paid_at, amount, mode, "
             "receipt_no) VALUES (:y,:s,:b,:at,:a,:m,NULL)"), p_rows)
         conn.execute(text("UPDATE bill SET paid=total, status='paid' "
-                          "WHERE status='pending' AND waived=0 AND id IN "
+                          "WHERE status='pending' AND waived=FALSE AND id IN "
                           "(SELECT DISTINCT bill_id FROM payment)"))
         # open bills older than as-of-90d become 'overdue'
         conn.execute(text(
-            "UPDATE bill SET status='overdue' WHERE status='pending' AND waived=0 "
+            "UPDATE bill SET status='overdue' WHERE status='pending' AND waived=FALSE "
             "AND due_date < :cutoff"), {"cutoff": ASOF - timedelta(days=90)})
         counts["bills"] = len(bill_rows)
         counts["payments"] = len(p_rows)
@@ -470,7 +474,7 @@ def build(days_per_year: int | None = None, limit_students: int | None = None) -
         for uname, pw, role, name, sid, gid, staff in demo:
             conn.execute(text(
                 "INSERT INTO user (username, password_hash, role, full_name, active, "
-                "guardian_id, student_id, staff_code) VALUES (:u,:h,:r,:n,1,:g,:s,:st)"),
+                "guardian_id, student_id, staff_code) VALUES (:u,:h,:r,:n,TRUE,:g,:s,:st)"),
                 {"u": uname, "h": hash_password(pw), "r": role, "n": name,
                  "g": gid, "s": sid, "st": staff})
         counts["users"] = len(demo)
