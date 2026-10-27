@@ -67,6 +67,9 @@ drop → late fees → withdrawal) so the ML has real signal + SHAP has real fea
 ## D9 · Comms
 MVP channels: **in-app notices + log-mode sender** (writes to `outbox`, no real SMS/WhatsApp).
 Gateway adapter interface reserved; real vendor = V1 (cost + consent reasons).
+**V1 SMS design research:** `docs/sms-research.md` — DLT/TRAI compliance model,
+vendor landscape, cost estimates, required schema changes, and the recommended
+provider/channel strategy (inputs to Steps 2–4).
 
 ## D10 · Cost story (runtime)
 VPS ₹0–2k/mo + Postgres same host + LLM off (demo mode) → **≤ ₹2.5k/mo total**
