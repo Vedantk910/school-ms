@@ -1,8 +1,8 @@
 """initial schema
 
-Revision ID: 14647b76096a
+Revision ID: 6ee54854b76b
 Revises: 
-Create Date: 2026-10-27 01:05:14.092234
+Create Date: 2026-10-27 11:28:08.067604
 
 """
 from typing import Sequence, Union
@@ -13,7 +13,7 @@ import sqlmodel.sql.sqltypes
 
 
 # revision identifiers, used by Alembic.
-revision: str = '14647b76096a'
+revision: str = '6ee54854b76b'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -147,7 +147,7 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_academic_year_label'), 'academic_year', ['label'], unique=True)
-    op.create_table('user',
+    op.create_table('app_user',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('username', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('password_hash', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
@@ -161,8 +161,8 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['student_id'], ['student.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index(op.f('ix_user_role'), 'user', ['role'], unique=False)
-    op.create_index(op.f('ix_user_username'), 'user', ['username'], unique=True)
+    op.create_index(op.f('ix_app_user_role'), 'app_user', ['role'], unique=False)
+    op.create_index(op.f('ix_app_user_username'), 'app_user', ['username'], unique=True)
     op.create_table('admission',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('year_id', sa.Integer(), nullable=False),
@@ -432,9 +432,9 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_admission_student_id'), table_name='admission')
     op.drop_index(op.f('ix_admission_stage'), table_name='admission')
     op.drop_table('admission')
-    op.drop_index(op.f('ix_user_username'), table_name='user')
-    op.drop_index(op.f('ix_user_role'), table_name='user')
-    op.drop_table('user')
+    op.drop_index(op.f('ix_app_user_username'), table_name='app_user')
+    op.drop_index(op.f('ix_app_user_role'), table_name='app_user')
+    op.drop_table('app_user')
     op.drop_index(op.f('ix_academic_year_label'), table_name='academic_year')
     op.drop_table('academic_year')
     op.drop_index(op.f('ix_teacher_staff_code'), table_name='teacher')

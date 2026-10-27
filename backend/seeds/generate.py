@@ -473,7 +473,7 @@ def build(days_per_year: int | None = None, limit_students: int | None = None) -
         ]
         for uname, pw, role, name, sid, gid, staff in demo:
             conn.execute(text(
-                "INSERT INTO user (username, password_hash, role, full_name, active, "
+                "INSERT INTO app_user (username, password_hash, role, full_name, active, "
                 "guardian_id, student_id, staff_code) VALUES (:u,:h,:r,:n,TRUE,:g,:s,:st)"),
                 {"u": uname, "h": hash_password(pw), "r": role, "n": name,
                  "g": gid, "s": sid, "st": staff})

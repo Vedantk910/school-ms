@@ -8,7 +8,10 @@ from app.db import Base
 
 
 class User(Base, table=True):
-    """Login identity for any role (admin/teacher/parent/student)."""
+    """Login identity for any role (admin/teacher/parent/student).
+
+    Table is named ``app_user``: ``user`` is a reserved word in PostgreSQL."""
+    __tablename__ = "app_user"
     id: int | None = Field(default=None, primary_key=True)
     username: str = Field(index=True, unique=True)
     password_hash: str
