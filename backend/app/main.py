@@ -6,7 +6,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.db import create_all
-from app.routers import admin, ai, attendance, auth, exams, fees, students
+from app.routers import (
+    admin, ai, attendance, auth, comms, events, exams, fees,
+    library, staff, students, timetable, transport,
+)
 
 
 @asynccontextmanager
@@ -37,6 +40,12 @@ def create_app() -> FastAPI:
     app.include_router(attendance.router, prefix="/api/v1")
     app.include_router(fees.router, prefix="/api/v1")
     app.include_router(exams.router, prefix="/api/v1")
+    app.include_router(events.router, prefix="/api/v1")
+    app.include_router(transport.router, prefix="/api/v1")
+    app.include_router(library.router, prefix="/api/v1")
+    app.include_router(staff.router, prefix="/api/v1")
+    app.include_router(timetable.router, prefix="/api/v1")
+    app.include_router(comms.router, prefix="/api/v1")
     app.include_router(ai.router, prefix="/api/v1")
     app.include_router(admin.router, prefix="/api/v1")
 
