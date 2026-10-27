@@ -11,6 +11,9 @@ backend/artifacts/
 backend/smoke.db
 backend/school_ms.db
 
+# Postgres backups (regenerable via scripts/backup.sh)
+backups/
+
 # Node
 node_modules/
 frontend/dist/

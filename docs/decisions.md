@@ -88,3 +88,26 @@ funnel ML, attendance forecasting, receipt OCR, PTA portal, multi-tenant, mobile
 - `docs/decision-log.md` (this file), `docs/architecture.md` (03), `docs/demo-script.md`
 - Deterministic ML evaluation report (`docs/ml-eval.md`, generated)
 - GitHub repo + CI green + deployable compose file
+
+## D14 · V1 hardening status
+| Item | Owner file(s) | Status | Acceptance |
+|---|---|---|---|
+| Gateway | `backend/app/comms.py`, `routers/comms.py` | **shipped** | `test_comms.py` green — provider swap, consent gate, cost cap |
+| TLS | `caddy/Caddyfile`, `docker-compose.yml` (caddy profile) | **shipped** | compose YAML parses; `docker compose --profile tls up` path documented |
+| Backups | `scripts/backup.sh`, `scripts/restore.sh` | **shipped** | `bash -n` clean; retention + cron line documented |
+| Secrets discipline | `.env.example`, `docker-compose.yml` | **shipped** | no secrets committed; `.env.example` carries the prod checklist |
+
+## D15 · V1.1 modules status
+| Module | Owner file(s) | Status | Acceptance |
+|---|---|---|---|
+| Transport | `models/transport.py`, `routers/transport.py` | **shipped** | `test_transport.py` green — stop ordering, revenue by stop, RBAC |
+| Library | `models/library.py`, `routers/library.py` | **shipped** | `test_library.py` green — copy availability, 2000-paise/day fine |
+| Events/clubs | `models/events.py`, `routers/events.py` | **shipped** | `test_events.py` green — upsert idempotency, mandatory no-shows |
+| Staff HR + payroll | `models/staff.py`, `routers/staff.py` | **shipped** | `test_staff.py` green — unpaid-leave deduction math, audit rows |
+| Timetable solver | `models/timetable.py`, `timetable_solver.py`, `routers/timetable.py` | **shipped** | `test_timetable.py` green — determinism, constraints 1-4, RBAC |
+| Alembic v1.1 migration | `alembic/versions/82cdd9429902_*.py` | **shipped** | `alembic upgrade head` creates all 12 new tables |
+
+> Full suite: **72 passing tests** on SQLite; CI additionally proves the same
+> tree on Postgres 16 (migrate + full seed). The website deploys via GitHub
+> Pages (`.github/workflows/deploy-pages.yml`); the full-stack stack is in
+> `deploy.md`.

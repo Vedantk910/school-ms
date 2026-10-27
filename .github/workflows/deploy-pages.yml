@@ -1,0 +1,62 @@
+# Static website deployment (GitHub Pages) for the School-MS frontend.
+#
+# - On every push to main: builds frontend/ and publishes it to
+#   https://<owner>.github.io/<repo>/ .
+# - Manual runs ("Deploy website") accept VITE_API_BASE, the URL of a live
+#   School-MS API (e.g. your VPS running the docker-compose stack), so the
+#   static site can talk to a real backend.
+#
+# Same-origin (no API URL) also works when the app is served through the
+# Caddy/nginx front-end in docker-compose.yml, which proxies /api to the API.
+
+name: Deploy website (GitHub Pages)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      VITE_API_BASE:
+        description: "Base URL of a live School-MS API (empty = same-origin)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      VITE_API_BASE: ${{ inputs.VITE_API_BASE }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm install --no-audit --no-fund
+          VITE_API_BASE="${VITE_API_BASE}" npm run build
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

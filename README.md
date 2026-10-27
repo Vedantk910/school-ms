@@ -17,6 +17,8 @@ fully reproducible synthetic dataset.
 | **LLM adapter** | Swappable LLM layer (demo / Ollama / OpenRouter) for trilingual-able notice composition; **demo mode runs fully offline** at zero cost |
 | **Reproducible data** | One command regenerates **240k attendance rows, 51k marks, 9.6k bills, 7.5k receipts** across 5 academic years, deterministically (seed 42) |
 | **Multi-role auth** | JWT RBAC for Admin/Teacher/Parent/Student + tamper-evident audit log |
+| **V1.1 modules** | Transport (routes/stops/stop-charge revenue), Library (loans + late fines), Events/clubs, **Staff HR + payroll** (unpaid-leave deduction math), **deterministic timetable constraint solver** |
+| **Production hardening** | Consent-gated + cost-capped SMS/WhatsApp gateway, Caddy TLS front, nightly pg backups + restore, secrets checklist, GitHub Pages website deploy |
 | **Cost story** | Self-hosts for **≤ ₹2.5k/mo** (VPS + Postgres + offline LLM) vs ₹5-10k/mo SaaS competitors |
 
 ## Architecture
@@ -26,11 +28,16 @@ frontend/   React 18 + TS + Vite, role-gated SPA (Recharts dashboards,
             SHAP InsightCard, printable GST receipt view)
               │  /api/v1
 backend/      FastAPI + SQLModel + Postgres/SQLite
-  ├─ models/   25 table models across 5 domains (core, people, academic, fees, ai)
-  ├─ routers/  auth, students, attendance, fees, exams, ai, admin
+  ├─ models/   core, people, academic, fees, ai + v1.1 (transport, library,
+  │           events, staff, timetable) — ~39 domain tables
+  ├─ routers/  auth, students, attendance, fees, exams, events, transport,
+  │           library, staff, timetable, comms, ai, admin
   ├─ ml/       features.py (leak-safe builders), train.py (GBR+baselines),
   │           explain.py (SHAP), registry + insight persistence
+  ├─ comms.py  consent-gated, cost-capped outbox gateway (log/sms providers)
+  ├─ timetable_solver.py  deterministic greedy+backtrack weekly scheduler
   ├─ llm.py    LLM adapter (demo default, Ollama/OpenRouter optional)
+  ├─ alembic/  schema migrations (initial + v1.1 module tables)
   └─ seeds/    deterministic synthetic dataset generator
 ```
 
@@ -87,16 +94,29 @@ docker compose up -d --build          # api + web
 docker compose --profile tools run --rm seed      # one-time data seed
 ```
 
+Optional extras (full details in **[deploy.md](deploy.md)**):
+
+- **TLS front** — `caddy/Caddyfile` + the `caddy` compose service under the
+  `tls` profile: `docker compose --profile tls up -d caddy`
+  (set `CADDY_DOMAIN` in `.env`; empty defaults to `localhost:8081`).
+- **Nightly backups** — `bash scripts/backup.sh` (writes
+  `backups/schoolms-<timestamp>.sql.gz`, keeps the newest 14 by default);
+  restore with `bash scripts/restore.sh <archive>`.
+
 ## Tests
 
 ```bash
 cd backend
-python -m pytest             # 38 tests: API, RBAC, fees ledger, ML eval, seed reproducibility
+python -m pytest             # 72 tests across 14 files
 ```
 
 The suite covers: auth + RBAC 401/403 paths, student ledger & receipt gap-audit,
 exam grade computation, deterministic ML metrics (GBR vs logistic vs majority),
-LLM demo composer, and **seed reproducibility** (two runs → identical row hashes).
+LLM demo composer, **seed reproducibility** (two runs → identical row hashes), and
+the five V1.1 modules (transport, library, events, staff+payroll, timetable
+solver) plus the comms gateway (consent gate + cost cap). CI additionally runs
+the same tree on **Postgres 16** (migrate + full seed + full suite) and builds
+both Docker images.
 
 ## The AI layer, explained
 
@@ -127,19 +147,32 @@ baselines, SHAP, reproducible evaluation), which carries to real data.
 - **Finance-grade receipts** — sequential per-fiscal-year numbering with a
   gap-audit endpoint (`GET /fees/receipts/gap-audit`) that flags missing numbers.
 
-## Out of scope (V2 roadmap)
+## V1.1 shipped — what a real school can run today
 
-Transport, library, events, staff payroll, timetable auto-fill, U-Id/UDISE
-export, trilingual UI, board topic-weight exam model, real SMS/WhatsApp
-gateways, multi-tenancy.
+Everything a single school deployment needs:
+- **Full operations**: students/admissions, attendance, fees + GST receipts,
+  exams + gradebook, transport, library, events, staff + payroll, timetables
+- **Insight layer**: at-risk + fee-default ML with SHAP explanations, LLM
+  notice composer, class dashboards
+- **Production hardening**: consent-gated SMS gateway, TLS front, backups,
+  secrets discipline, Alembic migrations, CI-verified Postgres deploys,
+  **website via GitHub Pages** + full-stack via `deploy.md`
+
+## V2 roadmap (not in this build)
+
+U-Id/UDISE export, trilingual UI, board topic-weight exam model, admission
+funnel / attendance forecasting ML, receipt OCR, multi-tenancy, PTA portal,
+mobile apps.
 
 ## Repository layout
 
 ```
 school-ms/
 ├── README.md  deploy.md  docker-compose.yml
-├── docs/     (research, decisions, architecture, ml-eval)
-├── .github/workflows/ci.yml
-├── backend/  (FastAPI + ML + seeds + tests + alembic)
-└── frontend/ (React SPA)
+├── caddy/     (Caddyfile — TLS reverse-proxy front, "tls" profile)
+├── scripts/   (backup.sh, restore.sh — nightly Postgres dumps + restore)
+├── docs/      (research, decisions D14/D15 status, architecture, ml-eval)
+├── .github/workflows/  (ci.yml: lint/test/Postgres/images + deploy-pages.yml)
+├── backend/   (FastAPI + ML + comms gateway + 5 v1.1 modules + alembic + 72 tests)
+└── frontend/  (React SPA, deployable to GitHub Pages via deploy-pages.yml)
 ```

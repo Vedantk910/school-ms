@@ -1,4 +1,6 @@
-const BASE = "/api/v1";
+// API base: same-origin (/api/v1) by default; override with VITE_API_BASE to
+// point the deployed site at a live backend (e.g. a VPS running the API).
+const BASE = ((import.meta.env as { VITE_API_BASE?: string }).VITE_API_BASE ?? "") + "/api/v1";
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
