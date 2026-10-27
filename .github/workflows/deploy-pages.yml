@@ -20,6 +20,7 @@ on:
         description: "Base URL of a live School-MS API (empty = same-origin)"
         required: false
         default: ""
+        type: string
 
 permissions:
   contents: read
