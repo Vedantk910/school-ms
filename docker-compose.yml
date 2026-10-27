@@ -1,0 +1,83 @@
+# School-MS deployment stack: Postgres 16 + FastAPI + React (nginx).
+# First deploy: see deploy.md (seed once, then `docker compose up -d`).
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: schoolms
+      POSTGRES_PASSWORD: schoolms
+      POSTGRES_DB: schoolms
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U schoolms"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      SCHOOLMS_DATABASE_URL: postgresql+psycopg://schoolms:schoolms@db:5432/schoolms
+      SCHOOLMS_JWT_SECRET: ${SCHOOLMS_JWT_SECRET:-dev-secret-change-me}
+      SCHOOLMS_LLM_BACKEND: ${SCHOOLMS_LLM_BACKEND:-demo}
+      SCHOOLMS_ARTIFACT_DIR: /srv/artifacts
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    volumes:
+      # trained model artifacts (joblib) persist across container rebuilds
+      - artifacts:/srv/artifacts
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/healthz')"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "8080:80"
+
+  # One-shot schema migration (first deploy + every schema change).
+  # Run: docker compose --profile tools run --rm migrate
+  migrate:
+    build:
+      context: ./backend
+    profiles: ["tools"]
+    env_file: .env
+    environment:
+      SCHOOLMS_DATABASE_URL: postgresql+psycopg://schoolms:schoolms@db:5432/schoolms
+      SCHOOLMS_ARTIFACT_DIR: /srv/artifacts
+    depends_on:
+      db:
+        condition: service_healthy
+    command: alembic upgrade head
+
+  # One-shot data seed (first deploy only). Run: docker compose --profile tools run --rm seed
+  seed:
+    build:
+      context: ./backend
+    profiles: ["tools"]
+    env_file: .env
+    environment:
+      SCHOOLMS_DATABASE_URL: postgresql+psycopg://schoolms:schoolms@db:5432/schoolms
+    depends_on:
+      db:
+        condition: service_healthy
+    command: python -m seeds.generate
+
+volumes:
+  pgdata:
+  artifacts:

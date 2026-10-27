@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+
+# Databases & artifacts (regenerable)
+*.db
+backend/artifacts/
+backend/smoke.db
+backend/school_ms.db
+
+# Node
+node_modules/
+frontend/dist/
+frontend/tsconfig.tsbuildinfo
+
+# Local config
+.env
+
+# Logs
+*.log
+
+# Model artifacts (regenerable via /ai/train)
+*.joblib

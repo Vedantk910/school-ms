@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "fastapi" "uvicorn[standard]" "sqlmodel" "pydantic-settings" \
+            "argon2-cffi" "python-jose[cryptography]" "python-multipart" \
+            "scikit-learn" "shap" "pandas" "numpy" "joblib" "pytest" "httpx"
+      - name: Lint
+        run: |
+          python -m pip install ruff
+          ruff check backend/app backend/seeds || echo "ruff: warnings only"
+      - name: Test suite
+        working-directory: backend
+        run: python -m pytest tests/ -q
+      - name: Verify deterministic seed (repro test covers two runs)
+        working-directory: backend
+        run: python -m pytest tests/test_seed_repro.py -q
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Build (type-check + bundle)
+        working-directory: frontend
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
+
+  postgres:
+    # Verify the full suite + seed against a real Postgres 16 (not just SQLite).
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: schoolms
+          POSTGRES_PASSWORD: schoolms
+          POSTGRES_DB: schoolms
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U schoolms"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: python -m pip install -r backend/requirements.txt
+      - name: Run migrations on Postgres (proves the deploy schema path)
+        working-directory: backend
+        env:
+          SCHOOLMS_DATABASE_URL: postgresql+psycopg://schoolms:schoolms@127.0.0.1:5432/schoolms
+        run: alembic upgrade head
+      - name: Full test suite on Postgres
+        working-directory: backend
+        env:
+          SCHOOLMS_DATABASE_URL: postgresql+psycopg://schoolms:schoolms@127.0.0.1:5432/schoolms
+        run: python -m pytest tests/ -q
+      - name: Seed full dataset on Postgres
+        working-directory: backend
+        env:
+          SCHOOLMS_DATABASE_URL: postgresql+psycopg://schoolms:schoolms@127.0.0.1:5432/schoolms
+        run: python -m seeds.generate
+
+  images:
+    # Prove the Dockerfiles actually build (they are not exercised elsewhere).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build api image
+        run: docker build -t school-ms-api:ci ./backend
+      - name: Build web image
+        run: docker build -t school-ms-web:ci ./frontend
