@@ -19,6 +19,12 @@ class Settings(BaseSettings):
     openrouter_api_key: str = ""
     openrouter_model: str = "meta-llama/llama-3.1-8b-instruct"
 
+    # Comms gateway (V1): log (offline demo) | sms (HTTP gateway)
+    comms_backend: str = "log"
+    sms_base_url: str = ""
+    sms_api_key: str = ""
+    sms_channel: str = "sms"
+
     # deterministic seed
     seed: int = 42
 

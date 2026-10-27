@@ -1,0 +1,18 @@
+# School-MS reverse-proxy front (run: docker compose --profile tls up)
+#
+# Site address: $CADDY_DOMAIN from the environment (passed via env_file);
+# defaults to localhost:8081 when unset or empty (dev).
+# Automatic HTTPS: for localhost Caddy uses its internal CA (no ACME), for a
+# real domain it provisions a certificate automatically. Certs/CA state
+# persist in caddy_data (/data), global config in caddy_config (/config).
+{$CADDY_DOMAIN:localhost:8081} {
+	# FastAPI backend (compose service 'api', port 8000)
+	handle /api/* {
+		reverse_proxy api:8000
+	}
+
+	# React frontend (compose service 'web', nginx on 80)
+	handle / {
+		reverse_proxy web:80
+	}
+}
