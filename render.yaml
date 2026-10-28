@@ -1,0 +1,34 @@
+# Render Blueprint — School-MS API (always-on Docker service).
+#
+# Import: render.com -> New -> Blueprint -> connect this repo -> "render.yaml".
+# Or CLI: render blueprints deploy (after: render login).
+#
+# The database is NOT created here: this project reuses the existing
+# Vercel Postgres (Neon) instance that is already migrated + seeded
+# (550 students, trained models, materialised insights). Point
+# SCHOOLMS_DATABASE_URL at it (postgresql+psycopg:// scheme, pooler host).
+
+services:
+  - type: web
+    name: school-ms-api
+    runtime: docker
+    plan: free            # free spins down after ~15 min idle (first load slow); use "starter" for always-on
+    dockerfilePath: backend/Dockerfile
+    buildDirectory: backend
+    healthCheckPath: /api/healthz
+    autoDeploy: true
+    envVars:
+      - key: SCHOOLMS_DATABASE_URL
+        # required: the seeded Vercel Postgres (Neon) URL with +psycopg scheme
+        value: "postgresql+psycopg://YOUR_POOLER_USER:YOUR_PASSWORD@ep-...-pooler....neon.tech/neondb?sslmode=require"
+      - key: SCHOOLMS_JWT_SECRET
+        # 64-hex random value; generate: python -c "import secrets;print(secrets.token_hex(32))"
+        sync: false
+      - key: SCHOOLMS_CORS_ORIGINS
+        value: "http://localhost:5173,http://localhost:3000,https://school-ms-smoky.vercel.app,https://vedantk910.github.io"
+      - key: SCHOOLMS_LLM_BACKEND
+        value: demo
+      - key: SCHOOLMS_COMMS_BACKEND
+        value: log
+      - key: PYTHONUNBUFFERED
+        value: "1"

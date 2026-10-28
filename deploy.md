@@ -248,3 +248,30 @@ for pooler safety).
 **Static-only hosts** (GitHub Pages, `frontend/` project on Vercel) remain
 available for a UI showcase without a backend: `frontend/vercel.json` +
 `frontend/public/404.html` make the SPA work on both.
+
+## Render (always-on API, zero-VPS — recommended public demo)
+
+The most reliable public option: one **always-on** Docker service on Render
+serving the API, reusing the seeded Vercel Postgres (Neon) database. No
+serverless caps, no cold starts, full ML stack available.
+
+```
+render.yaml   (repo root — one-click Blueprint import)
+service:      school-ms-api   (Docker from backend/Dockerfile, health /api/healthz)
+database:     EXISTING Vercel Postgres — set SCHOOLMS_DATABASE_URL to the
+              pooler URL with the +psycopg scheme (from `vercel env pull`)
+```
+
+**Setup (one-time, ~5 min):**
+1. Render → New → **Blueprint** → connect the repo (the CLI `render blueprints
+   deploy` works too once you've run `render login`).
+2. Fill `SCHOOLMS_DATABASE_URL` = the Vercel Postgres pooler URL (prepend
+   `postgresql+psycopg://`) and `SCHOOLMS_JWT_SECRET` (any 64-hex random).
+3. Wait for the build; hit `/api/healthz` on the service URL.
+
+**Repoint the UI** (it already supports `VITE_API_BASE`):
+- Vercel static host: `vercel env add VITE_API_BASE <render-url> --prod` + redeploy.
+- GitHub Pages: run "Deploy website" manually with `VITE_API_BASE` set.
+CORS is already configured in `render.yaml` (`SCHOOLMS_CORS_ORIGINS`) for both
+hosted UI origins. Free Render plans idle after ~15 min (first request takes
+~30 s); the "starter" plan is always-on.
