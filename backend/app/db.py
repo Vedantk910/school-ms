@@ -20,7 +20,13 @@ def _make_engine(url: str):
         # StaticPool keeps a single connection; fine for in-memory/test use.
         connect_args = {"check_same_thread": False} if ":memory:" in url else {}
         return create_engine(url, connect_args=connect_args, poolclass=StaticPool)
-    return create_engine(url, pool_pre_ping=True)
+    # Postgres. Vercel Postgres / Neon route through a pgbouncer pooler that
+    # caps cached (prepared) statements; psycopg's default cache of 512 would
+    # hit that on a busy app. prepare_threshold=100 keeps the planner honest
+    # (plain text protocol past 100 repeats, so nothing over the wire is
+    # ever "prepared"). Harmless on plain Postgres.
+    connect_args = {"prepare_threshold": 100} if "psycopg" in url else {}
+    return create_engine(url, pool_pre_ping=True, connect_args=connect_args)
 
 
 engine = _make_engine(settings.database_url)

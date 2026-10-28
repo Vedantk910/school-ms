@@ -28,6 +28,14 @@ class Settings(BaseSettings):
     # deterministic seed
     seed: int = 42
 
+    # Comma-separated CORS origins (production: the hosted UI domains).
+    # Defaults keep local dev working with zero configuration.
+    cors_origins: str = (
+        "http://localhost:5173,http://localhost:3000,"
+        "https://vedantk910.github.io,https://frontend-eta-two-66.vercel.app,"
+        "https://school-ms.vedantk910s-projects.vercel.app"
+    )
+
     class Config:
         env_prefix = "SCHOOLMS_"
         env_file = ".env"
