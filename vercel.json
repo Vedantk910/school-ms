@@ -1,10 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "other",
-  "installCommand": "pip install -r backend/requirements.txt",
+  "framework": "vite",
+  "installCommand": "pip install --target . -r backend/requirements-runtime.txt",
   "buildCommand": "npm --prefix frontend install --no-audit --no-fund && npm --prefix frontend run build",
   "outputDirectory": "frontend/dist",
-  "pythonVersion": "3.12.11",
   "functions": {
     "api/index.py": { "maxDuration": 60 }
   },

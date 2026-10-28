@@ -1,0 +1,15 @@
+# Runtime-only dependencies for the Vercel serverless function.
+# Excludes dev/test (pytest, httpx, uvicorn, alembic) and the heavy ML stack
+# (scikit-learn, shap, scipy, pandas, numpy, joblib) to stay under the
+# 250 MB function cap. Model *training* (/ai/train) is therefore a bootstrap
+# step run where the full requirements.txt is installed
+# (tools/bootstrap_db.py --retrain against the same DB); the insights
+# endpoints read pre-materialised rows from Postgres and keep working.
+fastapi>=0.110
+sqlmodel>=0.0.16
+sqlalchemy>=2.0
+pydantic-settings>=2.0
+psycopg[binary]>=3.1
+argon2-cffi>=23.1
+python-jose[cryptography]>=3.3
+python-multipart>=0.0.9

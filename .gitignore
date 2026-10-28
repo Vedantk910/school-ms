@@ -27,3 +27,6 @@ frontend/tsconfig.tsbuildinfo
 
 # Model artifacts (regenerable via /ai/train)
 *.joblib
+
+.vercel
+.env*

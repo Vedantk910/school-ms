@@ -194,3 +194,57 @@ Pages is the zero-infra way to showcase the UI + read-only flows.
 > Schema evolution is now handled by **Alembic** (`backend/alembic/`). The
 > compose `migrate` service runs `alembic upgrade head` on a real Postgres,
 > and the CI `postgres` job proves migrations + tests + seed on Postgres 16.
+
+## Full-stack deploy on Vercel (zero-VPS option)
+
+The repo also ships a **Vercel full-stack** deployment: the React app (built
+from `frontend/`) **and** the FastAPI backend (as a Vercel Python function at
+`/api`) on one project, with **Vercel Postgres** as the database. No VPS.
+
+```
+vercel project  : school-ms           (repo root)
+database        : Vercel Postgres "school-ms-db" (Neon pooler endpoint)
+API             : https://<host>/api/...   (function, api/index.py)
+UI              : same host, SPA at /, assets at /assets/
+```
+
+**One-time bootstrap (run locally, once):**
+
+```bash
+cd backend
+# 1) schema
+SCHOOLMS_DATABASE_URL="<psycopg URL>" python -m tools.bootstrap_db --no-seed
+# 2) full deterministic seed + train models + materialise SHAP insights
+SCHOOLMS_DATABASE_URL="<psycopg URL>" python -m tools.bootstrap_db --retrain
+```
+
+Where `<psycopg URL>` is the Vercel Postgres connection string
+(`postgresql+psycopg://user:***@...pooler...neon.tech/neondb` — get it via
+`vercel env pull` or the Vercel dashboard; note the `+psycopg` scheme
+SQLAlchemy needs, and `prepare_threshold=100` is already baked into `app/db.py`
+for pooler safety).
+
+**Vercel env vars (production scope, project `school-ms`):**
+
+| Variable | Value |
+|---|---|
+| `SCHOOLMS_DATABASE_URL` | pooler URL above (with `+psycopg`) |
+| `SCHOOLMS_JWT_SECRET` | `python -c "import secrets;print(secrets.token_hex(32))"` |
+| `SCHOOLMS_CORS_ORIGINS` | the UI origins (comma-separated) |
+
+**Behaviour notes:**
+- `lifespan` runs `create_all` + Alembic stamp on function start — idempotent.
+- Model **training** is intentionally *not* bundled into the serverless
+  function (the ML stack would push the bundle past Vercel's 250 MB cap).
+  `POST /api/v1/ai/train` returns a 501 with instructions; insights are served
+  from the rows the bootstrap step materialises. To retrain, re-run
+  `tools/bootstrap_db.py --retrain` locally and redeploy is not required —
+  the data is in Postgres.
+- The UI reads `VITE_API_BASE` when set, otherwise same-origin `/api/v1` —
+  on this host that is correct as-is.
+- Deployment protection: keep it **off** for a public demo; a gated deploy
+  returns "Protected deployment" for anonymous visitors.
+
+**Static-only hosts** (GitHub Pages, `frontend/` project on Vercel) remain
+available for a UI showcase without a backend: `frontend/vercel.json` +
+`frontend/public/404.html` make the SPA work on both.

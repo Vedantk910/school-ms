@@ -74,7 +74,18 @@ def train_models(
     session: Session = Depends(get_session),
     user: User = Depends(require_roles("admin")),
 ):
-    from app.ml.train import train_task
+    try:
+        from app.ml.train import train_task
+    except ModuleNotFoundError as exc:  # no ML stack bundled (serverless runtime)
+        raise HTTPException(
+            status_code=501,
+            detail=(
+                "Model training is not available in this runtime (ML stack not "
+                "bundled on the serverless host). The insights endpoints read "
+                f"pre-materialised results; train via `tools/bootstrap_db.py "
+                f"--retrain` against the database. Missing: {exc.name}"
+            ),
+        )
     results = {}
     for task in (["at_risk", "fee_default"] if kind == "all" else [kind]):
         results[task] = train_task(session, task)

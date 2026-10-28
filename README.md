@@ -18,7 +18,7 @@ fully reproducible synthetic dataset.
 | **Reproducible data** | One command regenerates **240k attendance rows, 51k marks, 9.6k bills, 7.5k receipts** across 5 academic years, deterministically (seed 42) |
 | **Multi-role auth** | JWT RBAC for Admin/Teacher/Parent/Student + tamper-evident audit log |
 | **V1.1 modules** | Transport (routes/stops/stop-charge revenue), Library (loans + late fines), Events/clubs, **Staff HR + payroll** (unpaid-leave deduction math), **deterministic timetable constraint solver** |
-| **Production hardening** | Consent-gated + cost-capped SMS/WhatsApp gateway, Caddy TLS front, nightly pg backups + restore, secrets checklist, GitHub Pages website deploy |
+| **Production hardening** | Consent-gated + cost-capped SMS/WhatsApp gateway, Caddy TLS front, nightly pg backups + restore, secrets checklist, **full-stack on Vercel** (FastAPI serverless + Vercel Postgres) and GitHub Pages |
 | **Cost story** | Self-hosts for **≤ ₹2.5k/mo** (VPS + Postgres + offline LLM) vs ₹5-10k/mo SaaS competitors |
 
 ## Architecture
@@ -168,11 +168,13 @@ mobile apps.
 
 ```
 school-ms/
-├── README.md  deploy.md  docker-compose.yml
+├── README.md  deploy.md  docker-compose.yml  vercel.json
+├── api/       (index.py — FastAPI app mounted as the Vercel serverless function)
 ├── caddy/     (Caddyfile — TLS reverse-proxy front, "tls" profile)
 ├── scripts/   (backup.sh, restore.sh — nightly Postgres dumps + restore)
-├── docs/      (research, decisions D14/D15 status, architecture, ml-eval)
+├── docs/      (research, decisions D14/D15, architecture, ml-eval, sms-research)
 ├── .github/workflows/  (ci.yml: lint/test/Postgres/images + deploy-pages.yml)
-├── backend/   (FastAPI + ML + comms gateway + 5 v1.1 modules + alembic + 72 tests)
-└── frontend/  (React SPA, deployable to GitHub Pages via deploy-pages.yml)
+├── backend/   (FastAPI + ML + comms gateway + 5 v1.1 modules + alembic + 72 tests
+│               + tools/bootstrap_db.py — one-time migrate/seed/retrain for Vercel Postgres)
+└── frontend/  (React SPA; same build serves Vercel + GitHub Pages; vercel.json in-tree)
 ```
