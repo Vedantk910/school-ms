@@ -30,3 +30,5 @@ frontend/tsconfig.tsbuildinfo
 
 .vercel
 .env*
+.render*
+.render_key

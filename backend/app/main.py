@@ -17,12 +17,14 @@ async def lifespan(app: FastAPI):
     # Dev convenience: ensure schema exists. Production uses Alembic in compose.
     create_all()
     # Keep create_all-built DBs migration-consistent (stamp head if unmanaged).
-    from app.db import engine
-    from app.migrate import ensure_schema
+    # The stamp is optional and must never block startup — the runtime image
+    # may not even ship alembic — so the import + call are both guarded.
     try:
+        from app.db import engine
+        from app.migrate import ensure_schema
         ensure_schema(engine)
     except Exception:
-        pass  # never block startup on the stamp
+        pass  # never block startup on the optional schema stamp
     yield
 
 

@@ -1,13 +1,18 @@
 # Runtime-only dependencies for the Vercel serverless function.
-# Excludes dev/test (pytest, httpx, uvicorn, alembic) and the heavy ML stack
+# Excludes dev/test (pytest, httpx, uvicorn) and the heavy ML stack
 # (scikit-learn, shap, scipy, pandas, numpy, joblib) to stay under the
 # 250 MB function cap. Model *training* (/ai/train) is therefore a bootstrap
 # step run where the full requirements.txt is installed
 # (tools/bootstrap_db.py --retrain against the same DB); the insights
 # endpoints read pre-materialised rows from Postgres and keep working.
+#
+# NOTE: alembic IS included (small, pure-Python) — the app's startup lifespan
+# calls ensure_schema(), which stamps alembic_version on create_all-built DBs.
+# It was previously missing here and crashed app startup on every cold start.
 fastapi>=0.110
 sqlmodel>=0.0.16
 sqlalchemy>=2.0
+alembic>=1.13
 pydantic-settings>=2.0
 psycopg[binary]>=3.1
 argon2-cffi>=23.1
