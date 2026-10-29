@@ -1,26 +1,30 @@
-# Render Blueprint — School-MS API (Docker service).
+# Render Blueprint — School-MS API.
 #
 # Deploy: render.com → New → Blueprint → pick repo Vedantk910/school-ms
 # (branch main) → Deploy Blueprint. Render reads this file from the root.
 #
-# The database is NOT created here: this reuses the existing Neon Postgres
-# (already migrated + seeded — 550 students, trained models, insights).
+# Source-based Python runtime (no Docker): Render installs requirements and
+# runs uvicorn directly. The database is NOT created here — this reuses the
+# existing Neon Postgres (already migrated + seeded), pasted in at deploy.
 
 services:
-  - type: docker
+  - type: web
     name: school-ms-api
+    runtime: python
+    pythonVersion: "3.12"
     plan: free                 # free sleeps after ~15 min idle; use "starter" for always-on
-    buildDirectory: backend   # Docker build context (same as docker-compose.yml)
-    dockerfilePath: backend/Dockerfile
+    buildCommand: cd backend && pip install --no-cache-dir -r requirements.txt
+    startCommand: cd backend && mkdir -p artifacts && uvicorn app.main:app --host 0.0.0.0 --port ${PORT}
     healthCheckPath: /healthz  # matches GET /healthz in backend/app/main.py
     autoDeploy: true
     envVars:
-      # Pre-filled with live values so the deploy works with zero manual
-      # secrets. Rotate/override in the Render dashboard when needed.
+      # Required: the seeded Neon Postgres pooler URL with the +psycopg
+      # scheme. Enter it in the Render deploy form (kept out of git).
       - key: SCHOOLMS_DATABASE_URL
-        value: "postgresql+psycopg://neondb_owner:npg_o32QvHMgXqNK@ep-gentle-wind-b7n3pu8u-pooler.c-13.us-east-1.aws.neon.tech/neondb?channel_binding=require&sslmode=require"
+      # Auto-generated random secret by Render at deploy time.
       - key: SCHOOLMS_JWT_SECRET
-        value: "5a9aeb368c0aed0c9857ba72292dbc308528fbb0bfe754d0dc813ca80e6f0814"
+        generateValue:
+          type: password
       - key: SCHOOLMS_CORS_ORIGINS
         value: "http://localhost:5173,http://localhost:3000,https://vedantk910.github.io,https://frontend-eta-two-66.vercel.app,https://school-ms.vedantk910s-projects.vercel.app"
       - key: SCHOOLMS_LLM_BACKEND

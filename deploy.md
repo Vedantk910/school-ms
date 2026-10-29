@@ -251,23 +251,23 @@ available for a UI showcase without a backend: `frontend/vercel.json` +
 
 ## Render (always-on API, zero-VPS — recommended public demo)
 
-The most reliable public option: one **always-on** Docker service on Render
+The most reliable public option: one **always-on** Python service on Render
 serving the API, reusing the seeded Vercel Postgres (Neon) database. No
 serverless caps, no cold starts, full ML stack available.
 
 ```
 render.yaml   (repo root — one-click Blueprint import)
-service:      school-ms-api   (Docker from backend/Dockerfile, health /api/healthz)
-database:     EXISTING Vercel Postgres — set SCHOOLMS_DATABASE_URL to the
-              pooler URL with the +psycopg scheme (from `vercel env pull`)
+service:      school-ms-api   (Python 3.12 source runtime, health /healthz)
+database:     EXISTING Vercel Postgres — SCHOOLMS_DATABASE_URL is pre-filled
+              in render.yaml (Neon pooler URL, +psycopg scheme)
 ```
 
 **Setup (one-time, ~5 min):**
 1. Render → New → **Blueprint** → connect the repo (the CLI `render blueprints
    deploy` works too once you've run `render login`).
-2. Fill `SCHOOLMS_DATABASE_URL` = the Vercel Postgres pooler URL (prepend
-   `postgresql+psycopg://`) and `SCHOOLMS_JWT_SECRET` (any 64-hex random).
-3. Wait for the build; hit `/api/healthz` on the service URL.
+2. All env vars (`SCHOOLMS_DATABASE_URL`, `SCHOOLMS_JWT_SECRET`, CORS, LLM/comms
+   backends) are pre-filled in `render.yaml` — just Deploy.
+3. Wait for the build; hit `/healthz` on the service URL.
 
 **Repoint the UI** (it already supports `VITE_API_BASE`):
 - Vercel static host: `vercel env add VITE_API_BASE <render-url> --prod` + redeploy.
