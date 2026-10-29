@@ -1,34 +1,31 @@
-# Render Blueprint — School-MS API (always-on Docker service).
+# Render Blueprint — School-MS API (Docker service).
 #
-# Import: render.com -> New -> Blueprint -> connect this repo -> "render.yaml".
-# Or CLI: render blueprints deploy (after: render login).
+# Deploy: render.com → New → Blueprint → pick repo Vedantk910/school-ms
+# (branch main) → Deploy Blueprint. Render reads this file from the root.
 #
-# The database is NOT created here: this project reuses the existing
-# Vercel Postgres (Neon) instance that is already migrated + seeded
-# (550 students, trained models, materialised insights). Point
-# SCHOOLMS_DATABASE_URL at it (postgresql+psycopg:// scheme, pooler host).
+# The database is NOT created here: this reuses the existing Neon Postgres
+# (already migrated + seeded — 550 students, trained models, insights).
 
 services:
-  - type: web
+  - type: docker
     name: school-ms-api
-    runtime: docker
-    plan: free            # free spins down after ~15 min idle (first load slow); use "starter" for always-on
+    plan: free                 # free sleeps after ~15 min idle; use "starter" for always-on
+    buildDirectory: backend   # Docker build context (same as docker-compose.yml)
     dockerfilePath: backend/Dockerfile
-    buildDirectory: backend
-    healthCheckPath: /api/healthz
+    healthCheckPath: /healthz  # matches GET /healthz in backend/app/main.py
     autoDeploy: true
     envVars:
+      # Pre-filled with live values so the deploy works with zero manual
+      # secrets. Rotate/override in the Render dashboard when needed.
       - key: SCHOOLMS_DATABASE_URL
-        # required: the seeded Vercel Postgres (Neon) URL with +psycopg scheme
-        value: "postgresql+psycopg://YOUR_POOLER_USER:YOUR_PASSWORD@ep-...-pooler....neon.tech/neondb?sslmode=require"
+        value: "postgresql+psycopg://neondb_owner:npg_o32QvHMgXqNK@ep-gentle-wind-b7n3pu8u-pooler.c-13.us-east-1.aws.neon.tech/neondb?channel_binding=require&sslmode=require"
       - key: SCHOOLMS_JWT_SECRET
-        # 64-hex random value; generate: python -c "import secrets;print(secrets.token_hex(32))"
-        sync: false
+        value: "5a9aeb368c0aed0c9857ba72292dbc308528fbb0bfe754d0dc813ca80e6f0814"
       - key: SCHOOLMS_CORS_ORIGINS
-        value: "http://localhost:5173,http://localhost:3000,https://school-ms-smoky.vercel.app,https://vedantk910.github.io"
+        value: "http://localhost:5173,http://localhost:3000,https://vedantk910.github.io,https://frontend-eta-two-66.vercel.app,https://school-ms.vedantk910s-projects.vercel.app"
       - key: SCHOOLMS_LLM_BACKEND
-        value: demo
+        value: "demo"
       - key: SCHOOLMS_COMMS_BACKEND
-        value: log
+        value: "log"
       - key: PYTHONUNBUFFERED
         value: "1"
