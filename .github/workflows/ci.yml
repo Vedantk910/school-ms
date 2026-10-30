@@ -43,6 +43,10 @@ jobs:
 
   postgres:
     # Verify the full suite + seed against a real Postgres 16 (not just SQLite).
+    # The suite is ~16 min on a fresh runner; a hard cap fails fast if a
+    # lock/contention regression re-introduces a wedge (previously the job
+    # could run to GitHub's 6h limit and auto-cancel silently).
+    timeout-minutes: 25
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -71,10 +75,14 @@ jobs:
           SCHOOLMS_DATABASE_URL: postgresql+psycopg://schoolms:schoolms@127.0.0.1:5432/schoolms
         run: alembic upgrade head
       - name: Full test suite on Postgres
+        # --timeout: no single test may exceed 10 min (worst observed is the
+        # ~45 s full-seed ML test). A wedged test (e.g. a leaked-connection
+        # deadlock) fails fast and is NAMED in the log instead of running to
+        # the job's 25 min cap or GitHub's 6h limit.
         working-directory: backend
         env:
           SCHOOLMS_DATABASE_URL: postgresql+psycopg://schoolms:schoolms@127.0.0.1:5432/schoolms
-        run: python -m pytest tests/ -q
+        run: python -m pytest tests/ -q --timeout=600
       - name: Seed full dataset on Postgres
         working-directory: backend
         env:
