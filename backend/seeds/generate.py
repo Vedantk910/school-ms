@@ -105,9 +105,14 @@ def _fiscal(d: date) -> int:
     return d.year if d.month >= 4 else d.year - 1
 
 
-def build(days_per_year: int | None = None, limit_students: int | None = None) -> dict:
+def build(days_per_year: int | None = None, limit_students: int | None = None,
+          include_demo_portals: bool = True) -> dict:
     """Seed the engine's database. ``days_per_year`` / ``limit_students`` allow
-    a fast mini-seed for the determinism test (same code path, smaller scale)."""
+    a fast mini-seed for the determinism test (same code path, smaller scale).
+
+    ``include_demo_portals=False`` seeds only the Admin + Teacher accounts —
+    the production posture (parent/guardian and student logins stay out).
+    Tests default to the full set so the portal endpoints remain covered."""
     t0 = time.time()
     import app.models  # noqa: F401  register all tables
     from app.db import Base, SQLModel
@@ -464,13 +469,18 @@ def build(days_per_year: int | None = None, limit_students: int | None = None) -
         counts["receipts"] = len(pays)
 
         # ================= Demo users =====================================
+        # Production seeds only Admin + Teacher; parent/student portal accounts
+        # are test/demo-only so the hosted app exposes staff logins alone.
         from app.security import hash_password
         demo = [
             ("admin", "admin", "admin", "Administrator", None, None, "AD001"),
             ("teach01", "teacher", "teacher", "Ms. Patil", None, None, "T001"),
-            ("parent01", "parent", "parent", "Guardian 0001", 1, 1, None),
-            ("stud0001", "student", "student", "Student 0001", 1, None, None),
         ]
+        if include_demo_portals:
+            demo += [
+                ("parent01", "parent", "parent", "Guardian 0001", 1, 1, None),
+                ("stud0001", "student", "student", "Student 0001", 1, None, None),
+            ]
         for uname, pw, role, name, sid, gid, staff in demo:
             conn.execute(text(
                 "INSERT INTO app_user (username, password_hash, role, full_name, active, "

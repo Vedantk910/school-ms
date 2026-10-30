@@ -71,8 +71,9 @@ npm install
 npm run dev        # http://localhost:5173  (proxies /api to :8000)
 ```
 
-**Demo logins** (password = role name): `admin/admin`, `teach01/teacher`,
-`parent01/parent`, `stud0001/student`.
+**Logins** (password = role name): `admin/admin`, `teach01/teacher`.
+Parent/student portal accounts exist in tests only — production seeds keep
+just Admin + Teacher (`seeds/generate.py include_demo_portals=False`).
 
 ### 3. Regenerate the ML evaluation report
 

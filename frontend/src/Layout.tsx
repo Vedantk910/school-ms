@@ -94,11 +94,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             {username} · <b>{ROLE_LABEL[role ?? ""] ?? role}</b>
           </div>
           <label className="foot-select-wrap">
-            <span className="foot-text muted small">Switch role (demo)</span>
+            <span className="foot-text muted small">Switch account</span>
             <select
               className="foot-select"
               defaultValue=""
-              aria-label="Switch demo role"
+              aria-label="Switch account"
               onChange={(e) => {
                 if (!e.target.value) return;
                 switchRole(e.target.value);
@@ -106,12 +106,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               }}
             >
               <option value="" disabled>
-                demo…
+                account…
               </option>
               <option value="admin">Admin</option>
               <option value="teach01">Teacher</option>
-              <option value="parent01">Parent</option>
-              <option value="stud0001">Student</option>
             </select>
           </label>
           <button className="btn ghost" onClick={() => { logout(); nav("/login"); }}>

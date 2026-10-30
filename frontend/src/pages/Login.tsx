@@ -12,8 +12,6 @@ import {
 const DEMO: [string, string][] = [
   ["admin", "admin"],
   ["teach01", "teacher"],
-  ["parent01", "parent"],
-  ["stud0001", "student"],
 ];
 
 export default function Login() {
@@ -47,7 +45,7 @@ export default function Login() {
           </span>
           <div>
             <div className="brand-name">School-MS</div>
-            <div className="brand-sub">MSBSHSE · demo</div>
+            <div className="brand-sub">MSBSHSE · 550 students</div>
           </div>
         </div>
 
@@ -118,7 +116,7 @@ export default function Login() {
           </button>
 
           <div className="demo-hint">
-            <div className="demo-title">Demo accounts · password = role</div>
+            <div className="demo-title">School accounts · password = role</div>
             <div className="chip-row">
               {DEMO.map(([a, b]) => (
                 <button

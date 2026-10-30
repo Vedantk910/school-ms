@@ -12,6 +12,8 @@ Usage:
 - ``--no-seed``    migrations only (use when you want to keep existing data).
 - ``--retrain``    after seeding, train the at-risk + fee-default models and
                    materialise SHAP insights so the AI Insights page is alive.
+- ``--include-portals``  seed the parent01 / stud0001 demo portal accounts too
+                   (default: staff-only — Admin + Teacher logins, the prod posture).
 
 Idempotent-ish: migrations are stamped/forwarded, and the seed drops +
 recreates data tables (same code path as ``seeds.generate``).
@@ -32,6 +34,9 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--no-seed", action="store_true")
     ap.add_argument("--retrain", action="store_true")
+    ap.add_argument("--include-portals", action="store_true",
+                    help="also seed the parent01 / stud0001 demo portal accounts "
+                         "(default: staff-only, Admin + Teacher)")
     args = ap.parse_args()
 
     url = os.environ.get("SCHOOLMS_DATABASE_URL")
@@ -49,11 +54,13 @@ def main() -> None:
     print("== alembic upgrade head ==")
     command.upgrade(cfg, "head")
 
-    # 2. deterministic full seed (550 students, ~240k attendance rows)
+    # 2. deterministic full seed (550 students, ~240k attendance rows).
+    # Production posture is staff-only (Admin + Teacher) logins; parent/student
+    # portal accounts are opt-in via --include-portals for local/demo use.
     if not args.no_seed:
         print("== seeding full dataset ==")
         from seeds.generate import build
-        counts = build()
+        counts = build(include_demo_portals=args.include_portals)
         counts.pop("seconds", None)
         print(json.dumps(counts, indent=2))
 

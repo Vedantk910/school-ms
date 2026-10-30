@@ -24,8 +24,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function switchRole(u: string) {
-    // demo credentials: password === role name
-    const pw = u === "admin" ? "admin" : u === "teach01" ? "teacher" : u === "parent01" ? "parent" : "student";
+    // convenience switcher: password === role name (admin / teach01)
+    const pw = u === "admin" ? "admin" : "teacher";
     await login(u, pw);
   }
 

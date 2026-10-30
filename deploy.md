@@ -69,7 +69,7 @@ container does not wipe them.
 ```bash
 curl http://localhost:8080/healthz          # web tier -> ok
 curl http://localhost:8000/healthz          # api tier
-# app:            http://<host>:8080       (demo logins: admin/admin, ...)
+# app:            http://<host>:8080       (logins: admin/admin, teach01/teacher)
 # swagger:        http://<host>:8000/docs
 ```
 
