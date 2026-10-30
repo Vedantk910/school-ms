@@ -71,9 +71,10 @@ npm install
 npm run dev        # http://localhost:5173  (proxies /api to :8000)
 ```
 
-**Logins** (password = role name): `admin/admin`, `teach01/teacher`.
-Parent/student portal accounts exist in tests only — production seeds keep
-just Admin + Teacher (`seeds/generate.py include_demo_portals=False`).
+**Logins** (password = role name): `admin/admin`, `teach01/teacher`,
+`stud0001/student`. The guardian demo login `parent01` is disabled in
+production (`seeds/generate.py include_parent=False` default; re-enable with
+`--include-parent`).
 
 ### 3. Regenerate the ML evaluation report
 

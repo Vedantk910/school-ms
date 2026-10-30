@@ -110,6 +110,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               </option>
               <option value="admin">Admin</option>
               <option value="teach01">Teacher</option>
+              <option value="stud0001">Student</option>
             </select>
           </label>
           <button className="btn ghost" onClick={() => { logout(); nav("/login"); }}>

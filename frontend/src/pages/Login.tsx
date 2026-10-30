@@ -12,6 +12,7 @@ import {
 const DEMO: [string, string][] = [
   ["admin", "admin"],
   ["teach01", "teacher"],
+  ["stud0001", "student"],
 ];
 
 export default function Login() {

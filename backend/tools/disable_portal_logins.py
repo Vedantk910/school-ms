@@ -1,11 +1,11 @@
-"""One-shot: disable parent/student logins in a live database.
+"""One-shot: disable the seeded parent login in a live database.
 
-After the Admin + Teacher-only finalisation, the seeded parent01 / stud0001
-portal accounts must not sign in on the hosted app. This script marks those
-rows inactive so /auth/login rejects them (verify_password still runs but
-``active`` gates the login). Admin and teacher accounts are untouched.
+After the staff-only finalisation, the seeded ``parent01`` guardian account
+must not sign in on the hosted app. This script marks parent rows inactive so
+/auth/login rejects them (``verify_password`` still runs, but ``active`` gates
+the login). Admin, teacher and student accounts are untouched.
 
-Idempotent — safe to re-run; it only reports on re-runs.
+Idempotent — safe to re-run; on re-runs it just reports.
 
 Usage (from the repo root, backend/ dir):
     SCHOOLMS_DATABASE_URL="postgresql+psycopg://..." \
@@ -26,11 +26,12 @@ def main() -> int:
         return 1
 
     eng = create_engine(url, pool_pre_ping=True)
-    with eng.connect() as conn:
+    with eng.begin() as conn:  # transactional: the UPDATE is committed
         rows = conn.execute(
             text("UPDATE app_user SET active = FALSE "
-                 "WHERE role IN ('parent','student') AND active = TRUE")
+                 "WHERE role = 'parent' AND active = TRUE")
         ).rowcount
+    with eng.connect() as conn:
         total = conn.execute(
             text("SELECT username, role, active FROM app_user "
                  "ORDER BY role, username")
