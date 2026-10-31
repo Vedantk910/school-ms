@@ -264,8 +264,11 @@ database:     EXISTING Neon Postgres — enter SCHOOLMS_DATABASE_URL when the
 ```
 
 **Setup (one-time, ~5 min):**
-1. Render → New → **Blueprint** → connect the repo (the CLI `render blueprints
-   deploy` works too once you've run `render login`).
+0. One command from the repo root: `bash deploy_render.sh` — creates the
+   service via the Render Blueprints API using the repo's `.render_key` and the
+   Neon pooler URL from `.env.local` (DB URL stays out of committed files).
+1. Or manually: Render → New → **Blueprint** → connect the repo (the CLI
+   `render blueprints deploy` works too once you've run `render login`).
 2. When prompted for `SCHOOLMS_DATABASE_URL`, paste the Neon pooler URL with
    the `+psycopg` scheme (from `.env.local` → `DATABASE_URL`). The JWT secret
    is generated automatically by Render.
