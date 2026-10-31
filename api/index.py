@@ -30,6 +30,20 @@ os.environ.setdefault("SCHOOLMS_ARTIFACT_DIR", "/tmp/school-ms-artifacts")
 if os.environ.get("DATABASE_URL"):
     os.environ.setdefault("SCHOOLMS_DATABASE_URL", os.environ["DATABASE_URL"])
 
+# Fail fast (at import time, with an actionable message) if no Postgres URL is
+# reachable. Without this the app silently falls back to the dev SQLite default,
+# which cannot open on Vercel's read-only /var/task, so every request dies in
+# the startup lifespan with "unable to open database file" instead of a clear
+# "set the env var" error. (Vercel's / is read-only; SQLite cannot work here.)
+if not os.environ.get("SCHOOLMS_DATABASE_URL"):
+    raise RuntimeError(
+        "School-MS API has no database: set SCHOOLMS_DATABASE_URL "
+        "(or connect a Vercel Postgres so DATABASE_URL is injected). "
+        "See deploy.md -> 'Full-stack deploy on Vercel'."
+    )
+
 # Heavy ML imports are deferred to the /ai/train route; keep app import light
-# so cold starts stay fast.
-from app.main import app  # noqa: E402,F401  (Vercel expects an ASGI `app` symbol)
+# so cold starts stay fast. Vercel's Python shim looks for an ASGI callable
+# named ``app`` (and some configs reference ``handler``) — export both.
+from app.main import app  # noqa: E402,F401
+handler = app
