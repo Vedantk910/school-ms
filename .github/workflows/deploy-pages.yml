@@ -45,7 +45,15 @@ jobs:
         working-directory: frontend
         run: |
           npm install --no-audit --no-fund
-          VITE_API_BASE="${VITE_API_BASE}" npm run build
+          # Push-triggered deploys always target the live Render API so a plain
+          # push can never silently repoint the demo to same-origin (no API).
+          # Manual "Run workflow" still honors VITE_API_BASE (empty = same-origin).
+          if [ "${{ github.event_name == 'push' }}" = "true" ]; then
+            API_BASE="https://school-ms-api-wuhc.onrender.com"
+          else
+            API_BASE="${VITE_API_BASE}"
+          fi
+          VITE_API_BASE="$API_BASE" npm run build
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
